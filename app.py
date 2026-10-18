@@ -1,30 +1,32 @@
 import re
 import html
 import uuid
+import io
+import base64
+import random
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-from fastapi import FastAPI, HTTPException, Status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Header
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, field_validator
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, VerificationError
 
 import jwt
+import pyotp
+import qrcode
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
 # ==========================================
-# 1. CẤU HÌNH BẢO MẬT & MÃ HÓA (CRYPTOGRAPHY)
+# 1. CẤU HÌNH BẢO MẬT & MÃ HÓA
 # ==========================================
 
-# Salt tĩnh (Pepper) kết hợp cùng Dynamic Salt ngầm định của Argon2id
 PEPPER = "StaticPepperSecret_2026_SecurePepperKey!@#"
-
-# Băm mật khẩu Argon2id
 ph = PasswordHasher()
 
-# Tạo cặp khóa mã hóa RSA 2048-bit ký & xác thực JWT (RS256)
+# Cặp khóa RSA 2048-bit ký JWT
 private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 public_key = private_key.public_key()
 
@@ -39,35 +41,40 @@ PEM_PUBLIC_KEY = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
-# Cơ sở dữ liệu tạm thời (In-memory storage)
+# Database In-memory
 users_db: Dict[str, dict] = {}
 reset_tokens_db: Dict[str, dict] = {}
-
-app = FastAPI(title="Core Auth & Cryptography System")
-
-# ==========================================
-# 2. TIỆN ÍCH MÁ HÓA & KIỂM TRA ĐẦU VÀO
-# ==========================================
+email_otps_db: Dict[str, dict] = {}
 
 def hash_password_with_pepper(password: str) -> str:
-    """Băm mật khẩu sử dụng Argon2id kết hợp Pepper tĩnh & Salt động."""
-    combined = password + PEPPER
-    return ph.hash(combined)
+    return ph.hash(password + PEPPER)
 
 def verify_password_with_pepper(hash_str: str, password: str) -> bool:
-    """Xác thực mật khẩu Argon2id."""
     try:
-        combined = password + PEPPER
-        return ph.verify(hash_str, combined)
+        return ph.verify(hash_str, password + PEPPER)
     except (VerifyMismatchError, VerificationError):
         return False
 
+# Khởi tạo dữ liệu sẵn để không bị mất khi reload
+users_db["admin@test.com"] = {
+    "fullname": "Admin User",
+    "email": "admin@test.com",
+    "password": hash_password_with_pepper("P@ssword2026!"),
+    "role": "Admin",
+    "totp_secret": None,
+    "totp_enabled": False,
+    "email_otp_enabled": False,
+    "backup_codes": [],
+    "created_at": datetime.now(timezone.utc).isoformat()
+}
+
+app = FastAPI(title="Core Auth, MFA & RBAC System")
+
+# ==========================================
+# 2. HELPER FUNCTIONS
+# ==========================================
+
 def validate_password_complexity(password: str):
-    """
-    Chuẩn hóa độ phức tạp mật khẩu:
-    - Độ dài tối thiểu 8 ký tự
-    - Ít nhất 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt
-    """
     if len(password) < 8:
         raise ValueError("Mật khẩu phải có độ dài tối thiểu 8 ký tự.")
     if not re.search(r"[A-Z]", password):
@@ -77,50 +84,71 @@ def validate_password_complexity(password: str):
     if not re.search(r"\d", password):
         raise ValueError("Mật khẩu phải chứa ít nhất 1 chữ số.")
     if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?]", password):
-        raise ValueError("Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%...).")
+        raise ValueError("Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt.")
     return password
 
-def create_jwt_tokens(email: str):
-    """Sinh Access Token & Refresh Token bằng RSA Private Key (RS256)."""
+def create_jwt_tokens(email: str, is_partial: bool = False, role: str = "User"):
     now = datetime.now(timezone.utc)
-    
     access_payload = {
         "sub": email,
+        "role": role,
         "type": "access",
+        "partial": is_partial,
         "iat": now,
         "exp": now + timedelta(minutes=15)
     }
-    
     refresh_payload = {
         "sub": email,
+        "role": role,
         "type": "refresh",
+        "partial": is_partial,
         "iat": now,
         "exp": now + timedelta(days=7)
     }
 
     access_token = jwt.encode(access_payload, PEM_PRIVATE_KEY, algorithm="RS256")
     refresh_token = jwt.encode(refresh_payload, PEM_PRIVATE_KEY, algorithm="RS256")
-    
     return access_token, refresh_token
 
 def decode_jwt_token(token: str):
-    """Giải mã & Xác thực JWT Token bằng RSA Public Key (RS256)."""
     try:
-        payload = jwt.decode(token, PEM_PUBLIC_KEY, algorithms=["RS256"])
-        return payload
+        return jwt.decode(token, PEM_PUBLIC_KEY, algorithms=["RS256"])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token đã hết hạn.")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token không hợp lệ.")
 
+def get_current_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Thiếu Token xác thực (Bearer).")
+    token = authorization.split(" ")[1]
+    payload = decode_jwt_token(token)
+    
+    email = payload.get("sub")
+    if not email or email not in users_db:
+        raise HTTPException(status_code=401, detail="Tài khoản không tồn tại hoặc đã bị xóa.")
+
+    if payload.get("partial") is True:
+        raise HTTPException(status_code=403, detail="Yêu cầu hoàn tất xác thực 2FA trước (Partial Auth).")
+        
+    return payload
+
+def require_role(allowed_roles: List[str]):
+    def role_checker(user: dict = Depends(get_current_user)):
+        if user.get("role") not in allowed_roles:
+            raise HTTPException(status_code=403, detail=f"Không đủ quyền hạn! Yêu cầu vai trò: {', '.join(allowed_roles)}")
+        return user
+    return role_checker
+
 # ==========================================
-# 3. PYDANTIC MODELS (INPUT SANITIZATION)
+# 3. MODELS
 # ==========================================
 
 class RegisterModel(BaseModel):
     fullname: str
     email: EmailStr
     password: str
+    role: Optional[str] = "User"
 
     @field_validator('fullname', mode='before')
     def sanitize_fullname(cls, v):
@@ -147,8 +175,19 @@ class ResetPasswordModel(BaseModel):
     def check_new_password(cls, v):
         return validate_password_complexity(v)
 
-class RefreshTokenModel(BaseModel):
-    refresh_token: str
+class VerifyMFAChallengeModel(BaseModel):
+    email: EmailStr
+    partial_token: str
+    method: str
+    code: str
+
+class Toggle2FAModel(BaseModel):
+    method: str
+    enable: bool
+
+class OAuthLoginModel(BaseModel):
+    provider: str
+    oauth_token: str
 
 # ==========================================
 # 4. API ENDPOINTS
@@ -156,99 +195,214 @@ class RefreshTokenModel(BaseModel):
 
 @app.post("/api/auth/register", status_code=201)
 async def register(data: RegisterModel):
-    """Đăng ký tài khoản & Kiểm tra dữ liệu đầu vào."""
     if data.email in users_db:
         raise HTTPException(status_code=400, detail="Email này đã được đăng ký.")
     
-    hashed_pwd = hash_password_with_pepper(data.password)
+    role = data.role if data.role in ["User", "Auditor", "Admin"] else "User"
+    
     users_db[data.email] = {
         "fullname": data.fullname,
         "email": data.email,
-        "password": hashed_pwd,
+        "password": hash_password_with_pepper(data.password),
+        "role": role,
+        "totp_secret": None,
+        "totp_enabled": False,
+        "email_otp_enabled": False,
+        "backup_codes": [],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     return {
         "message": "Đăng ký tài khoản thành công!",
-        "user": {"fullname": data.fullname, "email": data.email}
+        "user": {"fullname": data.fullname, "email": data.email, "role": role}
     }
 
 @app.post("/api/auth/login")
 async def login(data: LoginModel):
-    """Đăng nhập cơ bản & Sinh mã JWT."""
     user = users_db.get(data.email)
     if not user or not verify_password_with_pepper(user["password"], data.password):
         raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không chính xác.")
     
-    access_token, refresh_token = create_jwt_tokens(data.email)
+    mfa_required = user["totp_enabled"] or user["email_otp_enabled"]
+    
+    access_token, refresh_token = create_jwt_tokens(
+        email=data.email, 
+        is_partial=mfa_required, 
+        role=user["role"]
+    )
+    
+    sent_otp = None
+    if user["email_otp_enabled"]:
+        otp_code = f"{random.randint(100000, 999999)}"
+        email_otps_db[data.email] = {
+            "code": otp_code,
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=5)
+        }
+        sent_otp = otp_code
+    
     return {
-        "message": "Đăng nhập thành công!",
+        "message": "Cần xác thực 2FA!" if mfa_required else "Đăng nhập thành công!",
+        "mfa_required": mfa_required,
+        "mfa_methods": {
+            "totp": user["totp_enabled"],
+            "email_otp": user["email_otp_enabled"]
+        },
+        "email_otp_debug": sent_otp,
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
 
-@app.post("/api/auth/refresh")
-async def refresh_tokens(data: RefreshTokenModel):
-    """Sinh Access Token mới từ Refresh Token."""
-    payload = decode_jwt_token(data.refresh_token)
-    if payload.get("type") != "refresh":
-        raise HTTPException(status_code=400, detail="Token không phải là Refresh Token.")
+@app.post("/api/mfa/challenge")
+async def mfa_challenge(data: VerifyMFAChallengeModel):
+    payload = decode_jwt_token(data.partial_token)
+    if payload.get("sub") != data.email:
+        raise HTTPException(status_code=400, detail="Token và Email không khớp.")
     
-    email = payload.get("sub")
-    if email not in users_db:
+    user = users_db.get(data.email)
+    if not user:
         raise HTTPException(status_code=404, detail="Người dùng không tồn tại.")
-        
-    access_token, new_refresh_token = create_jwt_tokens(email)
+
+    verified = False
+
+    if data.method == "totp":
+        if not user["totp_enabled"] or not user["totp_secret"]:
+            raise HTTPException(status_code=400, detail="TOTP chưa được bật cho tài khoản này.")
+        totp = pyotp.TOTP(user["totp_secret"])
+        verified = totp.verify(data.code)
+
+    elif data.method == "backup":
+        if data.code in user["backup_codes"]:
+            verified = True
+            user["backup_codes"].remove(data.code)
+
+    elif data.method == "email_otp":
+        otp_info = email_otps_db.get(data.email)
+        if otp_info and otp_info["code"] == data.code:
+            if datetime.now(timezone.utc) <= otp_info["expires_at"]:
+                verified = True
+                del email_otps_db[data.email]
+
+    if not verified:
+        raise HTTPException(status_code=400, detail="Mã xác thực 2FA không hợp lệ hoặc đã hết hạn.")
+
+    full_access_token, full_refresh_token = create_jwt_tokens(
+        email=data.email, 
+        is_partial=False, 
+        role=user["role"]
+    )
+
     return {
-        "access_token": access_token,
-        "refresh_token": new_refresh_token,
+        "message": "Xác thực 2FA thành công! Đã chuyển sang Full Auth.",
+        "access_token": full_access_token,
+        "refresh_token": full_refresh_token,
         "token_type": "bearer"
     }
 
+@app.post("/api/mfa/totp/setup")
+async def setup_totp(user_payload: dict = Depends(get_current_user)):
+    email = user_payload["sub"]
+    user = users_db[email]
+
+    secret = pyotp.random_base32()
+    user["totp_secret"] = secret
+    
+    backup_codes = [str(uuid.uuid4())[:8] for _ in range(5)]
+    user["backup_codes"] = backup_codes
+
+    totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        name=email, 
+        issuer_name="CoreAuthMFAApp"
+    )
+
+    img = qrcode.make(totp_uri)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    return {
+        "secret": secret,
+        "qr_code_base64": f"data:image/png;base64,{qr_base64}",
+        "backup_codes": backup_codes
+    }
+
+@app.post("/api/mfa/toggle")
+async def toggle_mfa(data: Toggle2FAModel, user_payload: dict = Depends(get_current_user)):
+    email = user_payload["sub"]
+    user = users_db[email]
+
+    if data.method == "totp":
+        if data.enable and not user["totp_secret"]:
+            raise HTTPException(status_code=400, detail="Cần thiết lập TOTP Secret trước khi bật.")
+        user["totp_enabled"] = data.enable
+    elif data.method == "email_otp":
+        user["email_otp_enabled"] = data.enable
+
+    return {
+        "message": f"Đã {'kích hoạt' if data.enable else 'thu hồi'} 2FA ({data.method.upper()}) thành công!",
+        "mfa_status": {
+            "totp": user["totp_enabled"],
+            "email_otp": user["email_otp_enabled"]
+        }
+    }
+
+@app.post("/api/auth/oauth/login")
+async def oauth_login(data: OAuthLoginModel):
+    fake_email = f"user_{data.provider}@oauth.com"
+    
+    if fake_email not in users_db:
+        users_db[fake_email] = {
+            "fullname": f"OAuth {data.provider.capitalize()} User",
+            "email": fake_email,
+            "password": hash_password_with_pepper(str(uuid.uuid4())),
+            "role": "User",
+            "totp_secret": None,
+            "totp_enabled": False,
+            "email_otp_enabled": False,
+            "backup_codes": [],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+
+    access_token, refresh_token = create_jwt_tokens(fake_email, is_partial=False, role="User")
+    return {
+        "message": f"Đăng nhập thành công via {data.provider.capitalize()}!",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@app.get("/api/rbac/user-area")
+async def user_area(user: dict = Depends(require_role(["User", "Auditor", "Admin"]))):
+    return {"message": "Chào mừng đến với Khu vực Người dùng!", "user": user}
+
+@app.get("/api/rbac/auditor-area")
+async def auditor_area(user: dict = Depends(require_role(["Auditor", "Admin"]))):
+    return {"message": "Báo cáo Kiểm toán Bảo mật (Auditor Area)", "logs": ["LOG_1", "LOG_2"], "user": user}
+
+@app.get("/api/rbac/admin-area")
+async def admin_area(user: dict = Depends(require_role(["Admin"]))):
+    return {"message": "Bảng Điều Khiển Quản Trị Viên (Admin Area)", "all_users": list(users_db.keys()), "user": user}
+
 @app.post("/api/auth/forgot-password")
 async def forgot_password(data: ForgotPasswordModel):
-    """Tạo Reset Token có thời gian hết hạn (15 phút)."""
     if data.email not in users_db:
-        # Nhằm bảo mật, không tiết lộ email có tồn tại hay không
         return {"message": "Nếu email tồn tại, một mã Reset Token đã được gửi."}
     
     token = str(uuid.uuid4())
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
-    
     reset_tokens_db[token] = {
         "email": data.email,
-        "expires_at": expires_at
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15)
     }
-    
-    return {
-        "message": "Yêu cầu Reset Token thành công!",
-        "reset_token": token,
-        "expires_in": "15 phút"
-    }
+    return {"message": "Yêu cầu Reset Token thành công!", "reset_token": token}
 
 @app.post("/api/auth/reset-password")
 async def reset_password(data: ResetPasswordModel):
-    """Đặt lại mật khẩu mới bằng Reset Token."""
     token_info = reset_tokens_db.get(data.reset_token)
-    if not token_info:
-        raise HTTPException(status_code=400, detail="Reset Token không hợp lệ hoặc không tồn tại.")
+    if not token_info or datetime.now(timezone.utc) > token_info["expires_at"]:
+        raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã hết hạn.")
     
-    if datetime.now(timezone.utc) > token_info["expires_at"]:
-        del reset_tokens_db[data.reset_token]
-        raise HTTPException(status_code=400, detail="Reset Token đã hết hạn.")
-    
-    email = token_info["email"]
-    users_db[email]["password"] = hash_password_with_pepper(data.new_password)
-    
-    # Hủy token sau khi đã sử dụng
+    users_db[token_info["email"]]["password"] = hash_password_with_pepper(data.new_password)
     del reset_tokens_db[data.reset_token]
-    
-    return {"message": "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay."}
-
-@app.get("/api/auth/rsa-public-key")
-async def get_public_key():
-    """Lấy RSA Public Key dùng để kiểm tra mã JWT phía Client."""
-    return {"public_key": PEM_PUBLIC_KEY.decode("utf-8")}
+    return {"message": "Đặt lại mật khẩu thành công!"}
 
 @app.get("/", response_class=FileResponse)
 async def read_index():

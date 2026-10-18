@@ -4,3 +4,7 @@ pydantic[email]
 argon2-cffi
 pyjwt
 cryptography
+email-validator
+pyotp
+qrcode
+pillow
