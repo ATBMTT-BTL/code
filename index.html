@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Auth & Cryptography</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .card-custom { border-radius: 12px; border: 1px solid #e2e8f0; }
+        .tree-nav { background: #ffffff; border-right: 1px solid #e2e8f0; min-height: 100vh; }
+        .nav-link.active { background-color: #4f46e5 !important; color: white !important; }
+        .code-block { background-color: #0f172a; color: #38bdf8; padding: 12px; border-radius: 8px; font-size: 0.85rem; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar Navigation Tree -->
+        <div class="col-md-3 col-lg-2 tree-nav p-3">
+            <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fa-solid fa-shield-halved me-2"></i>Sơ Đồ Điều Hướng</h6>
+            <div class="nav flex-column nav-pills" role="tablist">
+                <button class="nav-link text-start active mb-1" data-bs-toggle="pill" data-bs-target="#tab-home">
+                    <i class="fa-solid fa-house me-2"></i>Home
+                </button>
+                <div class="ms-3 mt-1 mb-2 border-start ps-2">
+                    <small class="fw-bold text-muted d-block mb-1">Xác thực & Tài khoản</small>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-register">
+                        <i class="fa-solid fa-user-plus me-2"></i>Đăng ký tài khoản
+                    </button>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-login">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập chuẩn
+                    </button>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-forgot">
+                        <i class="fa-solid fa-key me-2"></i>Quên mật khẩu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="tab-content">
+                
+                <!-- HOME TAB -->
+                <div class="tab-pane fade show active" id="tab-home">
+                    <div class="card card-custom p-4 shadow-sm mb-4">
+                        <h4 class="fw-bold text-indigo"><i class="fa-solid fa-microchip me-2"></i>Module 1: Core Auth & Cryptography</h4>
+                        <p class="text-muted">Hệ thống xử lý bảo mật cốt lõi, mã hóa mật khẩu Argon2id và quản lý JWT ký chữ ký số RSA.</p>
+                        
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded-3 bg-white">
+                                    <h6 class="fw-bold text-primary"><i class="fa-solid fa-lock me-2"></i>Cơ chế Mã hóa & Password</h6>
+                                    <ul class="small mb-0 text-muted">
+                                        <li>Argon2id + Dynamic Salt + Static Pepper</li>
+                                        <li>Kiểm tra độ phức tạp Mật khẩu nghiêm ngặt</li>
+                                        <li>Input Sanitization (Escape HTML XSS)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded-3 bg-white">
+                                    <h6 class="fw-bold text-success"><i class="fa-solid fa-key me-2"></i>JWT Token & Khóa RSA</h6>
+                                    <ul class="small mb-0 text-muted">
+                                        <li>Cặp khóa bất đối xứng RSA 2048-bit (RS256)</li>
+                                        <li>Cấp Access Token & Refresh Token</li>
+                                        <li>Reset Token có Hạn (15 Phút)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REGISTER TAB -->
+                <div class="tab-pane fade" id="tab-register">
+                    <div class="card card-custom p-4 shadow-sm style-card mx-auto" style="max-width: 550px;">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-user-plus text-primary me-2"></i>Đăng Ký Tài Khoản</h5>
+                        <div id="registerAlert" class="alert d-none"></div>
+                        <form id="registerForm">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Họ và tên (Auto Sanitize XSS)</label>
+                                <input type="text" id="regFullname" class="form-control" placeholder="Ví dụ: Nguyễn Văn A <script>" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Email</label>
+                                <input type="email" id="regEmail" class="form-control" placeholder="user@domain.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Mật khẩu</label>
+                                <input type="password" id="regPassword" class="form-control" placeholder="P@ssword123!" required>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">Yêu cầu: ≥8 ký tự, chữ hoa, chữ thường, số & ký tự đặc biệt.</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold">Tạo Tài Khoản</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- LOGIN TAB -->
+                <div class="tab-pane fade" id="tab-login">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 shadow-sm">
+                                <h5 class="fw-bold mb-3"><i class="fa-solid fa-right-to-bracket text-success me-2"></i>Đăng Nhập Chuẩn</h5>
+                                <div id="loginAlert" class="alert d-none"></div>
+                                <form id="loginForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Email</label>
+                                        <input type="email" id="loginEmail" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Mật khẩu</label>
+                                        <input type="password" id="loginPassword" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100 fw-bold">Đăng Nhập</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 shadow-sm">
+                                <h6 class="fw-bold"><i class="fa-solid fa-code me-2"></i>Kết Quả JWT Token (RSA Signed)</h6>
+                                <p class="text-muted small">Token trả về khi xác thực thành công:</p>
+                                <div class="code-block" id="tokenDisplay">// Chưa có Token</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORGOT PASSWORD TAB -->
+                <div class="tab-pane fade" id="tab-forgot">
+                    <div class="row g-4">
+                        <!-- Step 1 -->
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 shadow-sm">
+                                <h5 class="fw-bold mb-3 text-warning"><i class="fa-solid fa-envelope me-2"></i>1. Yêu Cầu Reset Token</h5>
+                                <div id="forgotAlert" class="alert d-none"></div>
+                                <form id="forgotForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Email tài khoản</label>
+                                        <input type="email" id="forgotEmail" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning w-100 fw-bold">Gửi Yêu Cầu Token</button>
+                                </form>
+                            </div>
+                        </div>
+                        <!-- Step 2 -->
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 shadow-sm">
+                                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-key me-2"></i>2. Đặt Lại Mật Khẩu</h5>
+                                <div id="resetAlert" class="alert d-none"></div>
+                                <form id="resetForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Mã Reset Token</label>
+                                        <input type="text" id="resetTokenInput" class="form-control" placeholder="Dán mã UUID token tại đây" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Mật khẩu mới</label>
+                                        <input type="password" id="resetNewPassword" class="form-control" placeholder="NewP@ssword123!" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-danger w-100 fw-bold">Đổi Mật Khẩu</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Handle Register
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const alert = document.getElementById('registerAlert');
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullname: document.getElementById('regFullname').value,
+                    email: document.getElementById('regEmail').value,
+                    password: document.getElementById('regPassword').value
+                })
+            });
+            const data = await res.json();
+            alert.className = res.ok ? "alert alert-success" : "alert alert-danger";
+            alert.innerText = res.ok ? `${data.message} User: ${data.user.fullname}` : (data.detail || data.detail[0].msg);
+        } catch (err) { alert.className = "alert alert-danger"; alert.innerText = "Lỗi hệ thống!"; }
+        alert.classList.remove('d-none');
+    });
+
+    // Handle Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const alert = document.getElementById('loginAlert');
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('loginEmail').value,
+                    password: document.getElementById('loginPassword').value
+                })
+            });
+            const data = await res.json();
+            alert.className = res.ok ? "alert alert-success" : "alert alert-danger";
+            alert.innerText = res.ok ? data.message : data.detail;
+            if(res.ok) {
+                document.getElementById('tokenDisplay').innerText = JSON.stringify(data, null, 2);
+            }
+        } catch (err) { alert.className = "alert alert-danger"; alert.innerText = "Lỗi kết nối!"; }
+        alert.classList.remove('d-none');
+    });
+
+    // Handle Forgot Password
+    document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const alert = document.getElementById('forgotAlert');
+        try {
+            const res = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: document.getElementById('forgotEmail').value })
+            });
+            const data = await res.json();
+            alert.className = "alert alert-success";
+            alert.innerText = data.reset_token ? `Mã Reset Token (Hạn 15P): ${data.reset_token}` : data.message;
+            if(data.reset_token) {
+                document.getElementById('resetTokenInput').value = data.reset_token;
+            }
+        } catch (err) { alert.className = "alert alert-danger"; alert.innerText = "Lỗi hệ thống!"; }
+        alert.classList.remove('d-none');
+    });
+
+    // Handle Reset Password
+    document.getElementById('resetForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const alert = document.getElementById('resetAlert');
+        try {
+            const res = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reset_token: document.getElementById('resetTokenInput').value,
+                    new_password: document.getElementById('resetNewPassword').value
+                })
+            });
+            const data = await res.json();
+            alert.className = res.ok ? "alert alert-success" : "alert alert-danger";
+            alert.innerText = res.ok ? data.message : data.detail;
+        } catch (err) { alert.className = "alert alert-danger"; alert.innerText = "Lỗi kết nối!"; }
+        alert.classList.remove('d-none');
+    });
+</script>
+</body>
+</html>
