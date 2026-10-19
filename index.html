@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Core Auth, MFA & RBAC System</title>
+    <title>Core Auth, MFA, RBAC & Security Controls</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -19,6 +19,7 @@
 
 <div class="container-fluid">
     <div class="row">
+        <!-- SIDEBAR TREE NAV -->
         <div class="col-md-3 col-lg-2 tree-nav p-3">
             <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fa-solid fa-shield-halved me-2"></i>Sơ Đồ Điều Hướng</h6>
             <div class="nav flex-column nav-pills" role="tablist">
@@ -26,6 +27,7 @@
                     <i class="fa-solid fa-house me-2"></i>Home
                 </button>
                 
+                <!-- MODULE 2 -->
                 <div class="ms-2 mt-2 border-start ps-2">
                     <small class="fw-bold text-muted d-block mb-1">Xác thực Nâng cao & 2FA</small>
                     <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-register">
@@ -35,31 +37,46 @@
                         <i class="fa-solid fa-right-to-bracket me-2"></i>2. Đăng nhập chuẩn
                     </button>
                     <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-mfa-setup">
-                        <i class="fa-solid fa-qrcode me-2"></i>Thiết lập 2FA (TOTP/Email)
+                        <i class="fa-solid fa-qrcode me-2"></i>Thiết lập 2FA
                     </button>
                     <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-mfa-challenge">
                         <i class="fa-solid fa-shield-cat me-2"></i>Xác thực bước 2 (MFA)
-                    </button>
-                    <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-oauth">
-                        <i class="fa-brands fa-google me-2"></i>Đăng nhập OAuth2
                     </button>
                     <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-rbac">
                         <i class="fa-solid fa-user-lock me-2"></i>Quản lý Quyền (RBAC)
                     </button>
                 </div>
+
+                <!-- MODULE 3 -->
+                <div class="ms-2 mt-3 border-start ps-2">
+                    <small class="fw-bold text-danger d-block mb-1"><i class="fa-solid fa-user-shield me-1"></i>Trung tâm Bảo mật & Phòng thủ</small>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-captcha">
+                        <i class="fa-solid fa-robot me-2"></i>Kiểm tra CAPTCHA
+                    </button>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" data-bs-toggle="pill" data-bs-target="#tab-rate-limit">
+                        <i class="fa-solid fa-gauge-high me-2"></i>Rate Limit & IP Blacklist
+                    </button>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" id="btnTabSecurityAlerts" data-bs-toggle="pill" data-bs-target="#tab-security-alerts">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>Cảnh báo Bất thường
+                    </button>
+                </div>
+
             </div>
         </div>
 
+        <!-- MAIN CONTENT AREA -->
         <div class="col-md-9 col-lg-10 p-4">
             <div class="tab-content">
                 
+                <!-- 1. HOME -->
                 <div class="tab-pane fade show active" id="tab-home">
                     <div class="card card-custom p-4 shadow-sm mb-4">
-                        <h4 class="fw-bold text-indigo"><i class="fa-solid fa-layer-group me-2"></i>Module 2: MFA & RBAC System</h4>
-                        <p class="text-muted">Hệ thống Xác thực Đa yếu tố (2FA TOTP/Email OTP) và Phân quyền dựa trên Vai trò (RBAC).</p>
+                        <h4 class="fw-bold text-indigo"><i class="fa-solid fa-layer-group me-2"></i>Hệ Thống An Toàn Thông Tin Tổng Hợp</h4>
+                        <p class="text-muted">Tích hợp Xác thực Đa yếu tố (2FA/MFA), Phân quyền Vai trò (RBAC) và Cơ chế Phòng thủ Chống Tấn công (Rate Limit, Lockout, Captcha, IP Blacklist).</p>
                     </div>
                 </div>
 
+                <!-- 2. REGISTER -->
                 <div class="tab-pane fade" id="tab-register">
                     <div class="card card-custom p-4 shadow-sm mx-auto" style="max-width: 500px;">
                         <h5 class="fw-bold mb-3"><i class="fa-solid fa-user-plus text-primary me-2"></i>Đăng Ký Tài Khoản & Chọn Quyền</h5>
@@ -90,6 +107,7 @@
                     </div>
                 </div>
 
+                <!-- 3. LOGIN -->
                 <div class="tab-pane fade" id="tab-login">
                     <div class="row">
                         <div class="col-md-6">
@@ -121,6 +139,7 @@
                     </div>
                 </div>
 
+                <!-- 4. THIẾT LẬP 2FA -->
                 <div class="tab-pane fade" id="tab-mfa-setup">
                     <div class="card card-custom p-4 shadow-sm mb-4">
                         <h5 class="fw-bold mb-3"><i class="fa-solid fa-qrcode text-indigo me-2"></i>Thiết lập Xác thực 2 Yếu tố (2FA)</h5>
@@ -150,6 +169,7 @@
                     </div>
                 </div>
 
+                <!-- 5. XÁC THỰC BƯỚC 2 (MFA) -->
                 <div class="tab-pane fade" id="tab-mfa-challenge">
                     <div class="card card-custom p-4 shadow-sm mx-auto" style="max-width: 550px;">
                         <h5 class="fw-bold mb-3 text-warning"><i class="fa-solid fa-shield-cat me-2"></i>Xác Thực Bước 2 (MFA Challenge)</h5>
@@ -172,17 +192,7 @@
                     </div>
                 </div>
 
-                <div class="tab-pane fade" id="tab-oauth">
-                    <div class="card card-custom p-4 shadow-sm mx-auto text-center" style="max-width: 500px;">
-                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-right-to-bracket me-2"></i>Đăng Nhập Liên Kết (OAuth2)</h5>
-                        <div id="oauthAlert" class="alert d-none"></div>
-                        <div class="d-grid gap-2">
-                            <button id="btnGoogleOAuth" class="btn btn-outline-danger fw-bold"><i class="fa-brands fa-google me-2"></i>Đăng nhập bằng Google</button>
-                            <button id="btnGithubOAuth" class="btn btn-outline-dark fw-bold"><i class="fa-brands fa-github me-2"></i>Đăng nhập bằng GitHub</button>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- 6. QUẢN LÝ QUYỀN (RBAC) -->
                 <div class="tab-pane fade" id="tab-rbac">
                     <div class="card card-custom p-4 shadow-sm">
                         <h5 class="fw-bold mb-3"><i class="fa-solid fa-user-lock text-success me-2"></i>Kiểm Tra Phân Quyền (RBAC Protection)</h5>
@@ -204,6 +214,77 @@
                     </div>
                 </div>
 
+                <!-- 7. CAPTCHA -->
+                <div class="tab-pane fade" id="tab-captcha">
+                    <div class="card card-custom p-4 shadow-sm mx-auto" style="max-width: 600px;">
+                        <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-robot me-2"></i>Kiểm Tra CAPTCHA Thông Minh</h5>
+                        <p class="text-muted small">Mô phỏng tích hợp Cloudflare Turnstile / reCAPTCHA v3 tự động nhận diện Bot & Người dùng thật.</p>
+                        <div id="captchaAlert" class="alert d-none"></div>
+                        <div class="p-3 border rounded bg-light mb-3 text-center">
+                            <div class="form-check d-inline-block text-start">
+                                <input class="form-check-input" type="checkbox" id="chkCaptchaMock">
+                                <label class="form-check-label fw-bold" for="chkCaptchaMock">Tôi không phải là người máy (Smart CAPTCHA Token Generated)</label>
+                            </div>
+                        </div>
+                        <button id="btnVerifyCaptcha" class="btn btn-primary w-100 fw-bold">Gửi Xác Thực CAPTCHA</button>
+                    </div>
+                </div>
+
+                <!-- 8. RATE LIMIT & IP BLACKLIST -->
+                <div class="tab-pane fade" id="tab-rate-limit">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 shadow-sm h-100">
+                                <h5 class="fw-bold text-warning mb-3"><i class="fa-solid fa-gauge-high me-2"></i>Thử Nghiệm Rate Limit & Lockout</h5>
+                                <p class="text-muted small">Cấu hình: Tối đa <strong>5 lần thử / 1 phút</strong> trên cùng 1 IP. Nếu gõ sai 5 lần, tài khoản sẽ bị TẠM KHÓA 15 phút.</p>
+                                <button id="btnTestBruteForce" class="btn btn-warning w-100 fw-bold"><i class="fa-solid fa-bolt me-2"></i>Tự động Spam 6 Request Đăng Nhập Liên Tiếp</button>
+                                <div id="rateLimitAlert" class="alert d-none mt-3"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card card-custom p-4 shadow-sm h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold text-danger mb-0"><i class="fa-solid fa-ban me-2"></i>Quản Lý IP Blacklist</h5>
+                                    <span class="badge bg-danger"><i class="fa-solid fa-lock me-1"></i>Chỉ Admin mới có quyền</span>
+                                </div>
+                                <div id="ipAlert" class="alert d-none mb-3"></div>
+                                <div class="input-group mb-3">
+                                    <input type="text" id="txtIpBlock" class="form-control" placeholder="Ví dụ: 192.168.1.100">
+                                    <button id="btnAddIpBlock" class="btn btn-danger fw-bold">Chặn IP</button>
+                                </div>
+                                <h6>Danh sách IP đang bị cấm:</h6>
+                                <ul id="ipListDisplay" class="list-group list-group-flush border rounded"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 9. SECURITY ALERTS -->
+                <div class="tab-pane fade" id="tab-security-alerts">
+                    <div class="card card-custom p-4 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-danger mb-0"><i class="fa-solid fa-triangle-exclamation me-2"></i>Cảnh Báo Đăng Nhập Bất Thường</h5>
+                            <button id="btnRefreshAlerts" class="btn btn-outline-secondary btn-sm fw-bold"><i class="fa-solid fa-rotate me-1"></i>Làm mới Logs</button>
+                        </div>
+                        <div id="alertsAlert" class="alert d-none mb-3"></div>
+                        <div class="table-responsive" id="alertsTableWrapper">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>IP Nguồn</th>
+                                        <th>Loại Cảnh Báo</th>
+                                        <th>Chi Tiết HĐ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="alertsTableBody">
+                                    <tr><td colspan="4" class="text-center text-muted">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -218,50 +299,69 @@
         return JSON.stringify(detail);
     }
 
-    // HÀM DỌN DẸP SẠCH TOÀN BỘ GIAO DIỆN & DỮ LIỆU CŨ KHI ĐĂNG XUẤT
+    function getAuthHeaders() {
+        const token = localStorage.getItem('access_token');
+        return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    }
+
+    function displayAlert(id, isSuccess, message) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (el.dataset.timerId) {
+            clearTimeout(parseInt(el.dataset.timerId));
+            delete el.dataset.timerId;
+        }
+
+        el.className = isSuccess ? "alert alert-success" : "alert alert-danger";
+        el.innerHTML = message;
+        el.classList.remove('d-none');
+
+        const timerId = setTimeout(() => {
+            el.classList.add('d-none');
+            el.innerText = '';
+        }, 5000);
+        el.dataset.timerId = timerId;
+    }
+
+    // TỰ ĐỘNG TẢI LẠI TOÀN BỘ DỮ LIỆU BẢO MẬT KHI CÓ THAY ĐỔI
+    function refreshSecurityData() {
+        loadIpBlacklist();
+        loadSecurityAlerts();
+    }
+
     function resetSystemState() {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_email');
 
-        document.getElementById('loginForm').reset();
-        document.getElementById('registerForm').reset();
-        document.getElementById('mfaChallengeForm').reset();
+        document.querySelectorAll('form').forEach(form => form.reset());
 
-        ['registerAlert', 'loginAlert', 'mfaSetupAlert', 'mfaChallengeAlert', 'oauthAlert', 'rbacAlert'].forEach(id => {
+        const txtIpBlock = document.getElementById('txtIpBlock');
+        if (txtIpBlock) txtIpBlock.value = '';
+        const chkCaptchaMock = document.getElementById('chkCaptchaMock');
+        if (chkCaptchaMock) chkCaptchaMock.checked = false;
+
+        ['registerAlert', 'loginAlert', 'mfaSetupAlert', 'mfaChallengeAlert', 'rbacAlert', 'captchaAlert', 'rateLimitAlert', 'ipAlert', 'alertsAlert'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) {
-                el.innerText = '';
-                el.className = 'alert d-none';
+            if (el) { 
+                if (el.dataset.timerId) clearTimeout(parseInt(el.dataset.timerId));
+                el.innerText = ''; 
+                el.className = 'alert d-none'; 
             }
         });
 
         const qrArea = document.getElementById('qrArea');
         if (qrArea) qrArea.classList.add('d-none');
-        document.getElementById('imgQR').src = '';
-        document.getElementById('txtSecret').innerText = '';
-        document.getElementById('backupCodesDisplay').innerText = '';
 
-        document.getElementById('tokenDisplay').innerText = "// Chưa có Token (Vui lòng điền thông tin và bấm Đăng Nhập)";
+        document.getElementById('tokenDisplay').innerText = "// Chưa có Token (Đã đăng xuất & xóa sạch session)";
+        refreshSecurityData();
     }
 
-    window.addEventListener('load', () => {
-        document.getElementById('tokenDisplay').innerText = "// Chưa có Token (Vui lòng điền thông tin và bấm Đăng Nhập)";
-    });
+    document.getElementById('btnLogout').addEventListener('click', resetSystemState);
 
-    // Nút Đăng xuất: Xóa sạch 100% dữ liệu ở mọi tab
-    document.getElementById('btnLogout').addEventListener('click', () => {
-        resetSystemState();
-        const alertBox = document.getElementById('loginAlert');
-        alertBox.className = "alert alert-info";
-        alertBox.innerHTML = "<i class='fa-solid fa-circle-info me-2'></i>Đã đăng xuất & xóa sạch toàn bộ dữ liệu phiên cũ!";
-        alertBox.classList.remove('d-none');
-    });
-
-    // Register
+    // Form Register
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const alertBox = document.getElementById('registerAlert');
-        const form = document.getElementById('registerForm');
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -274,26 +374,18 @@
                 })
             });
             const data = await res.json();
-            alertBox.className = res.ok ? "alert alert-success" : "alert alert-danger";
-            alertBox.innerHTML = res.ok ? `${data.message} Role: <strong>${data.user.role}</strong>` : parseError(data.detail);
-            if (res.ok) form.reset();
-        } catch (err) { alertBox.className = "alert alert-danger"; alertBox.innerHTML = "Lỗi kết nối!"; }
-        alertBox.classList.remove('d-none');
+            displayAlert('registerAlert', res.ok, res.ok ? data.message : parseError(data.detail));
+            if(res.ok) document.getElementById('registerForm').reset();
+        } catch(err) {
+            displayAlert('registerAlert', false, "Lỗi kết nối máy chủ!");
+        }
     });
 
-    // Login
+    // Form Login
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const alertBox = document.getElementById('loginAlert');
         const tokenDisplay = document.getElementById('tokenDisplay');
         const email = document.getElementById('loginEmail').value;
-        
-        // Reset bớt các thông báo cũ ở các tab MFA trước khi đăng nhập mới
-        ['mfaSetupAlert', 'mfaChallengeAlert', 'rbacAlert'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('d-none');
-        });
-
         try {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -304,43 +396,34 @@
                 })
             });
             const data = await res.json();
-            alertBox.className = res.ok ? "alert alert-success" : "alert alert-danger";
-            alertBox.innerHTML = res.ok ? `${data.message} ${data.email_otp_debug ? '(Mã Email OTP Debug: ' + data.email_otp_debug + ')' : ''}` : parseError(data.detail);
-            
+            displayAlert('loginAlert', res.ok, res.ok ? data.message : parseError(data.detail));
             if(res.ok) {
                 localStorage.setItem('access_token', data.access_token);
                 localStorage.setItem('user_email', email);
                 tokenDisplay.innerText = JSON.stringify(data, null, 2);
+                refreshSecurityData();
             } else {
                 localStorage.removeItem('access_token');
-                localStorage.removeItem('user_email');
-                tokenDisplay.innerText = "// ĐĂNG NHẬP THẤT BẠI!\n// Token cũ đã bị xóa.";
+                tokenDisplay.innerText = "// ĐĂNG NHẬP THẤT BẠI!";
+                refreshSecurityData();
             }
-        } catch (err) { 
-            alertBox.className = "alert alert-danger"; 
-            alertBox.innerHTML = "Lỗi kết nối!"; 
+        } catch (err) {
+            displayAlert('loginAlert', false, "❌ Lỗi kết nối máy chủ!");
         }
-        alertBox.classList.remove('d-none');
     });
 
     // Setup TOTP
     document.getElementById('btnGenerateTOTP').addEventListener('click', async () => {
-        const alertBox = document.getElementById('mfaSetupAlert');
         const token = localStorage.getItem('access_token');
         if (!token) {
-            alertBox.className = "alert alert-danger";
-            alertBox.innerText = "Yêu cầu sang tab '2. Đăng nhập chuẩn' bấm Đăng Nhập trước!";
-            alertBox.classList.remove('d-none');
+            displayAlert('mfaSetupAlert', false, "Yêu cầu sang tab '2. Đăng nhập chuẩn' bấm Đăng Nhập trước!");
             return;
         }
 
         try {
             const res = await fetch('/api/mfa/totp/setup', {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: getAuthHeaders()
             });
             const data = await res.json();
             if(res.ok) {
@@ -348,47 +431,42 @@
                 document.getElementById('imgQR').src = data.qr_code_base64;
                 document.getElementById('txtSecret').innerText = data.secret;
                 document.getElementById('backupCodesDisplay').innerText = data.backup_codes.join('  |  ');
-                alertBox.className = "alert alert-success";
-                alertBox.innerText = "Đã sinh mã QR TOTP thành công!";
+                displayAlert('mfaSetupAlert', true, "Đã sinh mã QR TOTP thành công!");
             } else {
-                alertBox.className = "alert alert-danger";
-                alertBox.innerHTML = parseError(data.detail);
+                displayAlert('mfaSetupAlert', false, parseError(data.detail));
             }
         } catch(e) { 
-            alertBox.className = "alert alert-danger"; 
-            alertBox.innerText = "Lỗi máy chủ!"; 
+            displayAlert('mfaSetupAlert', false, "Lỗi máy chủ!");
         }
-        alertBox.classList.remove('d-none');
     });
 
     // Toggle 2FA Methods
     async function toggleMFA(method, enable) {
-        const alertBox = document.getElementById('mfaSetupAlert');
         const token = localStorage.getItem('access_token');
+        if (!token) {
+            displayAlert('mfaSetupAlert', false, "Yêu cầu đăng nhập Bước 1 trước!");
+            return;
+        }
         try {
             const res = await fetch('/api/mfa/toggle', {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ method, enable })
             });
             const data = await res.json();
-            alertBox.className = res.ok ? "alert alert-success" : "alert alert-danger";
-            alertBox.innerHTML = res.ok ? data.message : parseError(data.detail);
-        } catch(e) { alertBox.className = "alert alert-danger"; alertBox.innerText = "Lỗi gửi yêu cầu!"; }
-        alertBox.classList.remove('d-none');
+            displayAlert('mfaSetupAlert', res.ok, res.ok ? data.message : parseError(data.detail));
+        } catch(e) { 
+            displayAlert('mfaSetupAlert', false, "Lỗi gửi yêu cầu!");
+        }
     }
 
-    document.getElementById('btnEnableTOTP').onclick = () => toggleMFA('totp', true);
-    document.getElementById('btnDisableTOTP').onclick = () => toggleMFA('totp', false);
-    document.getElementById('btnEnableEmailOTP').onclick = () => toggleMFA('email_otp', true);
+    document.getElementById('btnEnableTOTP').addEventListener('click', () => toggleMFA('totp', true));
+    document.getElementById('btnDisableTOTP').addEventListener('click', () => toggleMFA('totp', false));
+    document.getElementById('btnEnableEmailOTP').addEventListener('click', () => toggleMFA('email_otp', true));
 
     // MFA Challenge
     document.getElementById('mfaChallengeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const alertBox = document.getElementById('mfaChallengeAlert');
         const token = localStorage.getItem('access_token');
         const email = localStorage.getItem('user_email');
         try {
@@ -403,56 +481,200 @@
                 })
             });
             const data = await res.json();
-            alertBox.className = res.ok ? "alert alert-success" : "alert alert-danger";
-            alertBox.innerHTML = res.ok ? data.message : parseError(data.detail);
+            displayAlert('mfaChallengeAlert', res.ok, res.ok ? data.message : parseError(data.detail));
             
             if(res.ok) {
                 localStorage.setItem('access_token', data.access_token);
                 document.getElementById('tokenDisplay').innerText = JSON.stringify(data, null, 2);
-                
-                const loginAlert = document.getElementById('loginAlert');
-                loginAlert.className = "alert alert-success";
-                loginAlert.innerHTML = `<i class='fa-solid fa-circle-check me-2'></i><strong>${data.message}</strong>`;
-                loginAlert.classList.remove('d-none');
+                displayAlert('loginAlert', true, "Xác thực 2FA thành công! Đã chuyển sang Full Auth.");
+                document.getElementById('mfaCodeInput').value = '';
+                refreshSecurityData();
             }
-        } catch (err) { alertBox.className = "alert alert-danger"; alertBox.innerHTML = "Lỗi hệ thống!"; }
-        alertBox.classList.remove('d-none');
+        } catch (err) { 
+            displayAlert('mfaChallengeAlert', false, "Lỗi hệ thống!");
+        }
     });
 
-    // OAuth
-    async function handleOAuth(provider) {
-        const alertBox = document.getElementById('oauthAlert');
-        const res = await fetch('/api/auth/oauth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider, oauth_token: "fake_token_123" })
-        });
-        const data = await res.json();
-        alertBox.className = "alert alert-success";
-        alertBox.innerText = data.message;
-        alertBox.classList.remove('d-none');
-        localStorage.setItem('access_token', data.access_token);
-        document.getElementById('tokenDisplay').innerText = JSON.stringify(data, null, 2);
-    }
-    document.getElementById('btnGoogleOAuth').onclick = () => handleOAuth('google');
-    document.getElementById('btnGithubOAuth').onclick = () => handleOAuth('github');
-
-    // Test RBAC
+    // TEST RBAC
     async function testRBAC(url) {
-        const alertBox = document.getElementById('rbacAlert');
         const token = localStorage.getItem('access_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
         try {
-            const res = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const res = await fetch(url, { headers });
+            const data = await res.json();
+            
+            if (res.ok) {
+                displayAlert('rbacAlert', true, `Trạng thái 200 OK: ${JSON.stringify(data)}`);
+            } else {
+                displayAlert('rbacAlert', false, `HTTP ${res.status}: ${parseError(data.detail)}`);
+            }
+        } catch(e) {
+            displayAlert('rbacAlert', false, "Không thể kết nối máy chủ!");
+        }
+    }
+
+    // CAPTCHA Test
+    document.getElementById('btnVerifyCaptcha').addEventListener('click', async () => {
+        const chk = document.getElementById('chkCaptchaMock');
+        const token = chk.checked ? "turnstile_valid_token_xyz999" : "";
+        try {
+            const res = await fetch('/api/security/verify-captcha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ captcha_token: token })
             });
             const data = await res.json();
-            alertBox.className = res.ok ? "alert alert-success" : "alert alert-danger";
-            alertBox.innerHTML = res.ok ? `Trạng thái 200 OK: ${JSON.stringify(data)}` : parseError(data.detail);
+            displayAlert('captchaAlert', res.ok, res.ok ? data.message : parseError(data.detail));
+            if (res.ok) chk.checked = false;
         } catch(e) {
-            alertBox.className = "alert alert-danger"; alertBox.innerText = "Không thể kết nối!";
+            displayAlert('captchaAlert', false, "Lỗi kết nối máy chủ!");
         }
+    });
+
+    // Test Brute Force / Rate Limit
+    document.getElementById('btnTestBruteForce').addEventListener('click', async () => {
+        const alertBox = document.getElementById('rateLimitAlert');
+        alertBox.className = "alert alert-info";
+        alertBox.innerText = "Đang phát lệnh spam 6 request đăng nhập...";
         alertBox.classList.remove('d-none');
+
+        let results = [];
+        for (let i = 1; i <= 6; i++) {
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: "admin@test.com", password: "wrong_password" })
+                });
+                const data = await res.json();
+                results.push(`Lần ${i}: HTTP ${res.status} - ${data.detail || data.message}`);
+            } catch(e) {
+                results.push(`Lần ${i}: Lỗi kết nối máy chủ!`);
+            }
+        }
+        alertBox.className = "alert alert-warning";
+        alertBox.innerHTML = results.join('<br>');
+        refreshSecurityData();
+    });
+
+    // MANAGE IP BLACKLIST
+    async function loadIpBlacklist() {
+        const list = document.getElementById('ipListDisplay');
+        try {
+            const res = await fetch('/api/security/ip-blacklist', { headers: getAuthHeaders() });
+            const data = await res.json();
+            
+            if(!res.ok) {
+                list.innerHTML = `<li class="list-group-item text-danger small"><i class="fa-solid fa-lock me-1"></i> HTTP ${res.status}: ${parseError(data.detail)}</li>`;
+                return;
+            }
+            list.innerHTML = data.blacklisted_ips.length ? '' : '<li class="list-group-item text-muted small">Chưa có IP bị cấm.</li>';
+            data.blacklisted_ips.forEach(ip => {
+                list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center"><code>${ip}</code> <button class="btn btn-sm btn-outline-danger" onclick="removeIp('${ip}')">Xóa</button></li>`;
+            });
+        } catch(e){
+            list.innerHTML = `<li class="list-group-item text-danger small"><i class="fa-solid fa-lock me-1"></i> Không có quyền xem IP Blacklist.</li>`;
+        }
     }
+
+    document.getElementById('btnAddIpBlock').addEventListener('click', async () => {
+        const ipInput = document.getElementById('txtIpBlock');
+        const ip = ipInput.value.trim();
+
+        if (!ip) {
+            displayAlert('ipAlert', false, "⚠️ Vui lòng nhập địa chỉ IP (ví dụ: 192.168.1.100) trước khi bấm Chặn!");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/security/ip-blacklist', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ ip })
+            });
+            const data = await res.json();
+            displayAlert('ipAlert', res.ok, res.ok ? data.message : `HTTP ${res.status}: ${parseError(data.detail)}`);
+            if (res.ok) {
+                ipInput.value = '';
+                await loadIpBlacklist();
+            }
+        } catch(e) {
+            displayAlert('ipAlert', false, "Lỗi gửi yêu cầu cấm IP!");
+        }
+    });
+
+    async function removeIp(ip) {
+        try {
+            const res = await fetch('/api/security/ip-blacklist', {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ ip })
+            });
+            const data = await res.json();
+            displayAlert('ipAlert', res.ok, res.ok ? data.message : `HTTP ${res.status}: ${parseError(data.detail)}`);
+            if (res.ok) await loadIpBlacklist();
+        } catch(e) {
+            displayAlert('ipAlert', false, "Lỗi khi gỡ bỏ IP!");
+        }
+    }
+
+    // LOAD SECURITY ALERTS - TỰ ĐỘNG TẢI LẠI KHI CLICK SANG TAB
+    async function loadSecurityAlerts() {
+        const tbody = document.getElementById('alertsTableBody');
+        try {
+            const res = await fetch('/api/security/alerts', { headers: getAuthHeaders() });
+            const data = await res.json();
+            
+            if(!res.ok) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center p-4 bg-light text-danger">
+                            <i class="fa-solid fa-shield-cat fa-3x mb-3 text-danger"></i>
+                            <h5 class="fw-bold">🔒 TRUY CẬP BỊ TỪ CHỐI (HTTP ${res.status})</h5>
+                            <p class="mb-0 text-secondary">${parseError(data.detail)}</p>
+                            <small class="text-muted d-block mt-2">Chất lượng truy cập bị giới hạn: Chỉ tài khoản Quản trị viên (Admin) mới có quyền xem Nhật ký Cảnh báo An ninh.</small>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.alerts.length ? '' : '<tr><td colspan="4" class="text-center text-muted">Chưa có nhật ký cảnh báo an ninh nào.</td></tr>';
+            data.alerts.forEach(item => {
+                tbody.innerHTML += `<tr>
+                    <td><small>${item.timestamp}</small></td>
+                    <td><code>${item.ip}</code></td>
+                    <td><span class="badge bg-danger">${item.type}</span></td>
+                    <td class="small">${item.detail}</td>
+                </tr>`;
+            });
+        } catch(e){
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center p-4 bg-light text-danger">
+                        <i class="fa-solid fa-lock fa-3x mb-3"></i>
+                        <h5 class="fw-bold">🔒 TRUY CẬP BỊ TỪ CHỐI (403 Forbidden)</h5>
+                        <p class="mb-0">Yêu cầu Token vai trò Admin để tải dữ liệu Cảnh báo An ninh.</p>
+                    </td>
+                </tr>`;
+        }
+    }
+
+    // TỰ ĐỘNG LẮNG NGHE SỰ KIỆN CHUYỂN TAB BOOTSTRAP ĐỂ TẢI DỮ LIỆU MỚI
+    document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(tabBtn => {
+        tabBtn.addEventListener('shown.bs.tab', (e) => {
+            const target = e.target.getAttribute('data-bs-target');
+            if (target === '#tab-rate-limit') {
+                loadIpBlacklist();
+            } else if (target === '#tab-security-alerts') {
+                loadSecurityAlerts();
+            }
+        });
+    });
+
+    document.getElementById('btnRefreshAlerts').addEventListener('click', loadSecurityAlerts);
+
+    window.addEventListener('load', () => { refreshSecurityData(); });
 </script>
 </body>
 </html>
