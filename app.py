@@ -36,6 +36,8 @@ RATE_LIMIT_MAX_ATTEMPTS = 5
 RATE_LIMIT_WINDOW_SECONDS = 60
 
 ip_blacklist: set = set()
+# WHITELIST BỎ QUA RATE LIMIT, BLACKLIST VÀ LOCKOUT DÀNH CHO ADMIN
+WHITELISTED_IPS: set = {"127.0.0.1", "localhost", "42.112.63.134"}
 
 lockout_tracker: Dict[str, dict] = {}
 LOCKOUT_THRESHOLD = 5
@@ -68,8 +70,8 @@ users_db: Dict[str, dict] = {
 async def security_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "127.0.0.1"
 
-    # CHẶN TỨC THỜI NẾU IP NẰM TRONG BLACKLIST
-    if client_ip in ip_blacklist:
+    # CHẶN TỨC THỜI NẾU IP NẰM TRONG BLACKLIST (BỎ QUA NẾU NẰM TRONG WHITELIST)
+    if client_ip in ip_blacklist and client_ip not in WHITELISTED_IPS:
         return JSONResponse(
             status_code=403,
             content={"detail": f"🚨 BẢO MẬT: Địa chỉ IP {client_ip} của bạn đã bị HỆ THỐNG TỰ ĐỘNG CHẶN do phát hiện hành vi tấn công!"}
@@ -89,6 +91,10 @@ def sanitize_text(text: str) -> str:
     return html.escape(text.strip()) if text else ""
 
 def check_rate_limit(client_ip: str) -> bool:
+    # BỎ QUA KIỂM TRA RATE LIMIT CHO CÁC IP NẰM TRONG WHITELIST
+    if client_ip in WHITELISTED_IPS:
+        return True
+
     now = time.time()
     timestamps = rate_limit_records.get(client_ip, [])
     timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW_SECONDS]
@@ -156,28 +162,29 @@ def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCr
             if session.get("is_revoked"):
                 raise HTTPException(status_code=401, detail="Phiên làm việc này đã bị hủy bỏ/đăng xuất từ xa!")
 
-            # CƠ CHẾ PHÁT HIỆN SESSION HIJACKING & TỰ ĐỘNG CHẶN IP
+            # CƠ CHẾ PHÁT HIỆN SESSION HIJACKING
             current_ua = request.headers.get("user-agent", "Unknown")
             recorded_ua = session.get("user_agent", "Unknown")
             if current_ua != recorded_ua:
                 session["is_revoked"] = True
                 client_ip = request.client.host if request.client else "127.0.0.1"
                 
-                # TỰ ĐỘNG THÊM IP HACKER VÀO BLACKLIST TỨC THÌ
-                ip_blacklist.add(client_ip)
+                # CHẶN IP NẾU KHÔNG NẰM TRONG WHITELIST
+                if client_ip not in WHITELISTED_IPS:
+                    ip_blacklist.add(client_ip)
 
                 # Ghi Log Bất thường & Audit Alert
                 security_alerts_log.append({
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "ip": client_ip,
-                    "type": "Session Hijacking Attack (IP Blacklisted)",
-                    "detail": f"TỰ ĐỘNG CHẶN IP {client_ip} do phát hiện Session Hijacking đối với {email}! Ban đầu: '{recorded_ua}', Hiện tại: '{current_ua}'"
+                    "type": "Session Hijacking Attack Detected",
+                    "detail": f"Phát hiện Session Hijacking đối với {email}! Ban đầu: '{recorded_ua}', Hiện tại: '{current_ua}'"
                 })
-                log_audit_event(email, "SESSION_HIJACK_DETECTED", client_ip, current_ua, f"Tự động CHẶN IP {client_ip} & Hủy phiên khẩn cấp!", "ALERT")
+                log_audit_event(email, "SESSION_HIJACK_DETECTED", client_ip, current_ua, f"Cảnh báo Session Hijacking & Hủy phiên khẩn cấp!", "ALERT")
                 
                 raise HTTPException(
                     status_code=403, 
-                    detail=f"🚨 CẢNH BÁO AN NINH: Phát hiện nghi vấn Session Hijacking! IP {client_ip} của bạn đã bị HỆ THỐNG TỰ ĐỘNG CHẶN TẮC THỜI."
+                    detail=f"🚨 CẢNH BÁO AN NINH: Phát hiện nghi vấn Session Hijacking (User-Agent bị thay đổi)! Phiên làm việc đã bị hủy ngay lập tức."
                 )
 
             session["last_active"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -267,25 +274,28 @@ async def login(data: LoginSchema, request: Request):
     clean_email = data.email.lower()
 
     if not check_rate_limit(client_ip):
-        # NẾU RATE LIMIT VƯỢT QUÁ THƯỜNG XUYÊN -> TỰ ĐỘNG CHẶN IP
-        ip_blacklist.add(client_ip)
+        if client_ip not in WHITELISTED_IPS:
+            ip_blacklist.add(client_ip)
         security_alerts_log.append({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "ip": client_ip,
-            "type": "Rate Limit Auto-Block",
-            "detail": f"IP {client_ip} bị TỰ ĐỘNG CHẶN do spam vượt quá 5 lần/1 phút!"
+            "type": "Rate Limit Exceeded",
+            "detail": f"IP {client_ip} thử spam vượt quá 5 lần/1 phút!"
         })
-        log_audit_event(clean_email, "USER_LOGIN", client_ip, ua, "Thất bại: Rate Limit Exceeded -> TỰ ĐỘNG CHẶN IP", "BLOCKED")
-        raise HTTPException(status_code=429, detail=f"IP {client_ip} đã bị tự động cấm do nghi vấn spam/brute-force!")
+        log_audit_event(clean_email, "USER_LOGIN", client_ip, ua, "Thất bại: Rate Limit Exceeded (Chống Brute-force)", "BLOCKED")
+        raise HTTPException(status_code=429, detail=f"IP {client_ip} đã bị giới hạn truy cập do thử quá 5 lần/1 phút!")
 
-    lock_info = lockout_tracker.get(clean_email, {"failed_count": 0, "lockout_until": None})
-    if lock_info["lockout_until"] and datetime.now() < lock_info["lockout_until"]:
-        remaining = int((lock_info["lockout_until"] - datetime.now()).total_seconds() / 60) + 1
-        log_audit_event(clean_email, "USER_LOGIN", client_ip, ua, f"Thất bại: Tài khoản bị tạm khóa trong {remaining} phút", "LOCKED")
-        raise HTTPException(status_code=403, detail=f"Tài khoản bị tạm khóa! Thử lại sau {remaining} phút.")
+    # BỎ QUA CHECK LOCKOUT NẾU IP NẰM TRONG WHITELIST
+    if client_ip not in WHITELISTED_IPS:
+        lock_info = lockout_tracker.get(clean_email, {"failed_count": 0, "lockout_until": None})
+        if lock_info["lockout_until"] and datetime.now() < lock_info["lockout_until"]:
+            remaining = int((lock_info["lockout_until"] - datetime.now()).total_seconds() / 60) + 1
+            log_audit_event(clean_email, "USER_LOGIN", client_ip, ua, f"Thất bại: Tài khoản bị tạm khóa trong {remaining} phút", "LOCKED")
+            raise HTTPException(status_code=403, detail=f"Tài khoản bị tạm khóa! Thử lại sau {remaining} phút.")
 
     user = users_db.get(clean_email)
     if not user or not pwd_context.verify(data.password, user["hashed_password"]):
+        lock_info = lockout_tracker.get(clean_email, {"failed_count": 0, "lockout_until": None})
         lock_info["failed_count"] += 1
         if lock_info["failed_count"] >= LOCKOUT_THRESHOLD:
             lock_info["lockout_until"] = datetime.now() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
@@ -529,8 +539,8 @@ async def get_pentest_report():
                 "attack_type": "Brute-force / Credential Stuffing",
                 "severity": "CRITICAL",
                 "status": "MITIGATED",
-                "evidence": "Gửi 100 request/giây. Từ request thứ 6, server tự động trả về HTTP 429 & TỰ ĐỘNG CHẶN IP HACKER.",
-                "mitigation": "Rate Limiter & Automatic Dynamic IP Blacklisting."
+                "evidence": "Gửi 100 request/giây. Từ request thứ 6, server tự động trả về HTTP 429 Rate Limit.",
+                "mitigation": "Rate Limiter & Account Lockout Tracker."
             },
             {
                 "id": "VULN-002",
@@ -539,8 +549,8 @@ async def get_pentest_report():
                 "attack_type": "Session Hijacking / User-Agent Tampering",
                 "severity": "HIGH",
                 "status": "MITIGATED",
-                "evidence": "Thay đổi User-Agent từ Chrome sang cURL/Python requests. Middleware tự động HỦY PHIÊN & CHẶN IP HACKER.",
-                "mitigation": "Device Fingerprinting & Automatic IP Blacklisting."
+                "evidence": "Thay đổi User-Agent từ Chrome sang cURL/Python requests. Middleware tự động HỦY PHIÊN khẩn cấp.",
+                "mitigation": "Device Fingerprinting & Automatic Session Revocation."
             },
             {
                 "id": "VULN-003",
