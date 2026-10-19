@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Core Auth, MFA, RBAC & Security Controls</title>
+    <title>Core Auth, MFA, RBAC, Security & Audit System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -61,6 +61,20 @@
                     </button>
                 </div>
 
+                <!-- MODULE 4 -->
+                <div class="ms-2 mt-3 border-start ps-2">
+                    <small class="fw-bold text-primary d-block mb-1"><i class="fa-solid fa-desktop me-1"></i>Giám sát & Quản lý Phiên</small>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" id="btnTabActiveSessions" data-bs-toggle="pill" data-bs-target="#tab-active-sessions">
+                        <i class="fa-solid fa-laptop-code me-2"></i>Danh sách Thiết bị & Phiên
+                    </button>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" id="btnTabAuditLogs" data-bs-toggle="pill" data-bs-target="#tab-audit-logs">
+                        <i class="fa-solid fa-receipt me-2"></i>Dashboard Nhật ký Đăng nhập
+                    </button>
+                    <button class="nav-link text-start btn-sm w-100 mb-1" id="btnTabPentest" data-bs-toggle="pill" data-bs-target="#tab-pentest">
+                        <i class="fa-solid fa-bug me-2"></i>Báo cáo & Đánh giá Lỗ hổng (Pentest)
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -72,7 +86,7 @@
                 <div class="tab-pane fade show active" id="tab-home">
                     <div class="card card-custom p-4 shadow-sm mb-4">
                         <h4 class="fw-bold text-indigo"><i class="fa-solid fa-layer-group me-2"></i>Hệ Thống An Toàn Thông Tin Tổng Hợp</h4>
-                        <p class="text-muted">Tích hợp Xác thực Đa yếu tố (2FA/MFA), Phân quyền Vai trò (RBAC) và Cơ chế Phòng thủ Chống Tấn công (Rate Limit, Lockout, Captcha, IP Blacklist).</p>
+                        <p class="text-muted">Tích hợp Xác thực Đa yếu tố (2FA/MFA), Phân quyền Vai trò (RBAC), Cơ chế Phòng thủ Chống Tấn công, Quản lý Phiên Đăng Nhập & Nhật Ký Kiểm Toán Audit Logs.</p>
                     </div>
                 </div>
 
@@ -109,7 +123,7 @@
 
                 <!-- 3. LOGIN -->
                 <div class="tab-pane fade" id="tab-login">
-                    <div class="row">
+                    <div class="row g-4">
                         <div class="col-md-6">
                             <div class="card card-custom p-4 shadow-sm">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -130,9 +144,29 @@
                                 </form>
                             </div>
                         </div>
+
+                        <!-- ĐỔI MẬT KHẨU -->
                         <div class="col-md-6">
                             <div class="card card-custom p-4 shadow-sm">
-                                <h6 class="fw-bold"><i class="fa-solid fa-key me-2"></i>Trạng Thái Auth Token Trả Về</h6>
+                                <h5 class="fw-bold mb-3"><i class="fa-solid fa-key text-warning me-2"></i>Đổi Mật Khẩu (Tự Động Thu Hồi Session)</h5>
+                                <div id="changePasswordAlert" class="alert d-none"></div>
+                                <form id="changePasswordForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Mật khẩu hiện tại</label>
+                                        <input type="password" id="txtOldPassword" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Mật khẩu mới</label>
+                                        <input type="password" id="txtNewPassword" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning w-100 fw-bold">Cập Nhật Mật Khẩu</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="card card-custom p-4 shadow-sm">
+                                <h6 class="fw-bold"><i class="fa-solid fa-code me-2"></i>Trạng Thái Auth Token Trả Về</h6>
                                 <div class="code-block" id="tokenDisplay">// Chưa có Token</div>
                             </div>
                         </div>
@@ -267,7 +301,7 @@
                             <button id="btnRefreshAlerts" class="btn btn-outline-secondary btn-sm fw-bold"><i class="fa-solid fa-rotate me-1"></i>Làm mới Logs</button>
                         </div>
                         <div id="alertsAlert" class="alert d-none mb-3"></div>
-                        <div class="table-responsive" id="alertsTableWrapper">
+                        <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="table-dark">
                                     <tr>
@@ -281,6 +315,81 @@
                                     <tr><td colspan="4" class="text-center text-muted">Đang tải dữ liệu...</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10. MODULE 4: DANH SÁCH THIẾT BỊ & PHIÊN LÀM VIỆC -->
+                <div class="tab-pane fade" id="tab-active-sessions">
+                    <div class="card card-custom p-4 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-desktop me-2"></i>Quản Lý Phiên Làm Việc (Active Sessions & Device Fingerprinting)</h5>
+                            <button id="btnRefreshSessions" class="btn btn-outline-primary btn-sm fw-bold"><i class="fa-solid fa-rotate me-1"></i>Làm mới Sessions</button>
+                        </div>
+                        <div id="sessionsAlert" class="alert d-none mb-3"></div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tài khoản</th>
+                                        <th>Thiết Bị / Trình Duyệt</th>
+                                        <th>Địa chỉ IP & Vị trí</th>
+                                        <th>Đăng nhập lúc</th>
+                                        <th>Hoạt động cuối</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessionsTableBody">
+                                    <tr><td colspan="6" class="text-center text-muted">Đang tải danh sách phiên làm việc...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 11. MODULE 4: DASHBOARD NHẬT KÝ ĐĂNG NHẬP (AUDIT LOGS) -->
+                <div class="tab-pane fade" id="tab-audit-logs">
+                    <div class="card card-custom p-4 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-receipt me-2"></i>Dashboard Nhật Ký Bảo Mật (Security Audit Logs)</h5>
+                            <div>
+                                <span class="badge bg-secondary me-2"><i class="fa-solid fa-user-shield me-1"></i>Quyền Auditor/Admin</span>
+                                <button id="btnRefreshAuditLogs" class="btn btn-outline-secondary btn-sm fw-bold"><i class="fa-solid fa-rotate me-1"></i>Tải lại Logs</button>
+                            </div>
+                        </div>
+                        <div id="auditLogsAlert" class="alert d-none mb-3"></div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Tài khoản</th>
+                                        <th>Hành động</th>
+                                        <th>Thiết bị & IP</th>
+                                        <th>Trạng thái</th>
+                                        <th>Chi tiết hoạt động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogsTableBody">
+                                    <tr><td colspan="6" class="text-center text-muted">Đang tải dữ liệu kiểm toán...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 12. MODULE 4: BÁO CÁO PENTEST -->
+                <div class="tab-pane fade" id="tab-pentest">
+                    <div class="card card-custom p-4 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-indigo mb-0"><i class="fa-solid fa-bug me-2"></i>Báo Cáo Đánh Giá Lỗ Hổng & Pentest (Proof of Audit)</h5>
+                            <button id="btnLoadPentest" class="btn btn-outline-indigo btn-sm fw-bold"><i class="fa-solid fa-file-code me-1"></i>Tải Minh Chứng Pentest</button>
+                        </div>
+                        <p class="text-muted small">Kiểm thử tấn công bằng các công cụ Burp Suite Professional, SQLMap v1.8 và OWASP ZAP 2.14.</p>
+                        
+                        <div id="pentestReportContainer">
+                            <div class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Đang tải minh chứng kiểm thử...</div>
                         </div>
                     </div>
                 </div>
@@ -324,10 +433,11 @@
         el.dataset.timerId = timerId;
     }
 
-    // TỰ ĐỘNG TẢI LẠI TOÀN BỘ DỮ LIỆU BẢO MẬT KHI CÓ THAY ĐỔI
-    function refreshSecurityData() {
+    function refreshAllModuleData() {
         loadIpBlacklist();
         loadSecurityAlerts();
+        loadActiveSessions();
+        loadAuditLogs();
     }
 
     function resetSystemState() {
@@ -341,7 +451,7 @@
         const chkCaptchaMock = document.getElementById('chkCaptchaMock');
         if (chkCaptchaMock) chkCaptchaMock.checked = false;
 
-        ['registerAlert', 'loginAlert', 'mfaSetupAlert', 'mfaChallengeAlert', 'rbacAlert', 'captchaAlert', 'rateLimitAlert', 'ipAlert', 'alertsAlert'].forEach(id => {
+        ['registerAlert', 'loginAlert', 'changePasswordAlert', 'mfaSetupAlert', 'mfaChallengeAlert', 'rbacAlert', 'captchaAlert', 'rateLimitAlert', 'ipAlert', 'alertsAlert', 'sessionsAlert', 'auditLogsAlert'].forEach(id => {
             const el = document.getElementById(id);
             if (el) { 
                 if (el.dataset.timerId) clearTimeout(parseInt(el.dataset.timerId));
@@ -354,7 +464,7 @@
         if (qrArea) qrArea.classList.add('d-none');
 
         document.getElementById('tokenDisplay').innerText = "// Chưa có Token (Đã đăng xuất & xóa sạch session)";
-        refreshSecurityData();
+        refreshAllModuleData();
     }
 
     document.getElementById('btnLogout').addEventListener('click', resetSystemState);
@@ -375,7 +485,10 @@
             });
             const data = await res.json();
             displayAlert('registerAlert', res.ok, res.ok ? data.message : parseError(data.detail));
-            if(res.ok) document.getElementById('registerForm').reset();
+            if(res.ok) {
+                document.getElementById('registerForm').reset();
+                refreshAllModuleData();
+            }
         } catch(err) {
             displayAlert('registerAlert', false, "Lỗi kết nối máy chủ!");
         }
@@ -401,14 +514,37 @@
                 localStorage.setItem('access_token', data.access_token);
                 localStorage.setItem('user_email', email);
                 tokenDisplay.innerText = JSON.stringify(data, null, 2);
-                refreshSecurityData();
+                refreshAllModuleData();
             } else {
                 localStorage.removeItem('access_token');
                 tokenDisplay.innerText = "// ĐĂNG NHẬP THẤT BẠI!";
-                refreshSecurityData();
+                refreshAllModuleData();
             }
         } catch (err) {
             displayAlert('loginAlert', false, "❌ Lỗi kết nối máy chủ!");
+        }
+    });
+
+    // Form Đổi Mật Khẩu
+    document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    old_password: document.getElementById('txtOldPassword').value,
+                    new_password: document.getElementById('txtNewPassword').value
+                })
+            });
+            const data = await res.json();
+            displayAlert('changePasswordAlert', res.ok, res.ok ? data.message : parseError(data.detail));
+            if (res.ok) {
+                document.getElementById('changePasswordForm').reset();
+                refreshAllModuleData();
+            }
+        } catch(err) {
+            displayAlert('changePasswordAlert', false, "Lỗi đổi mật khẩu!");
         }
     });
 
@@ -432,6 +568,7 @@
                 document.getElementById('txtSecret').innerText = data.secret;
                 document.getElementById('backupCodesDisplay').innerText = data.backup_codes.join('  |  ');
                 displayAlert('mfaSetupAlert', true, "Đã sinh mã QR TOTP thành công!");
+                refreshAllModuleData();
             } else {
                 displayAlert('mfaSetupAlert', false, parseError(data.detail));
             }
@@ -455,6 +592,7 @@
             });
             const data = await res.json();
             displayAlert('mfaSetupAlert', res.ok, res.ok ? data.message : parseError(data.detail));
+            if (res.ok) refreshAllModuleData();
         } catch(e) { 
             displayAlert('mfaSetupAlert', false, "Lỗi gửi yêu cầu!");
         }
@@ -488,7 +626,7 @@
                 document.getElementById('tokenDisplay').innerText = JSON.stringify(data, null, 2);
                 displayAlert('loginAlert', true, "Xác thực 2FA thành công! Đã chuyển sang Full Auth.");
                 document.getElementById('mfaCodeInput').value = '';
-                refreshSecurityData();
+                refreshAllModuleData();
             }
         } catch (err) { 
             displayAlert('mfaChallengeAlert', false, "Lỗi hệ thống!");
@@ -555,7 +693,7 @@
         }
         alertBox.className = "alert alert-warning";
         alertBox.innerHTML = results.join('<br>');
-        refreshSecurityData();
+        refreshAllModuleData();
     });
 
     // MANAGE IP BLACKLIST
@@ -598,6 +736,7 @@
             if (res.ok) {
                 ipInput.value = '';
                 await loadIpBlacklist();
+                refreshAllModuleData();
             }
         } catch(e) {
             displayAlert('ipAlert', false, "Lỗi gửi yêu cầu cấm IP!");
@@ -613,13 +752,16 @@
             });
             const data = await res.json();
             displayAlert('ipAlert', res.ok, res.ok ? data.message : `HTTP ${res.status}: ${parseError(data.detail)}`);
-            if (res.ok) await loadIpBlacklist();
+            if (res.ok) {
+                await loadIpBlacklist();
+                refreshAllModuleData();
+            }
         } catch(e) {
             displayAlert('ipAlert', false, "Lỗi khi gỡ bỏ IP!");
         }
     }
 
-    // LOAD SECURITY ALERTS - TỰ ĐỘNG TẢI LẠI KHI CLICK SANG TAB
+    // LOAD SECURITY ALERTS
     async function loadSecurityAlerts() {
         const tbody = document.getElementById('alertsTableBody');
         try {
@@ -633,7 +775,7 @@
                             <i class="fa-solid fa-shield-cat fa-3x mb-3 text-danger"></i>
                             <h5 class="fw-bold">🔒 TRUY CẬP BỊ TỪ CHỐI (HTTP ${res.status})</h5>
                             <p class="mb-0 text-secondary">${parseError(data.detail)}</p>
-                            <small class="text-muted d-block mt-2">Chất lượng truy cập bị giới hạn: Chỉ tài khoản Quản trị viên (Admin) mới có quyền xem Nhật ký Cảnh báo An ninh.</small>
+                            <small class="text-muted d-block mt-2">Chỉ tài khoản Quản trị viên (Admin) mới có quyền xem Nhật ký Cảnh báo An ninh.</small>
                         </td>
                     </tr>`;
                 return;
@@ -660,21 +802,174 @@
         }
     }
 
-    // TỰ ĐỘNG LẮNG NGHE SỰ KIỆN CHUYỂN TAB BOOTSTRAP ĐỂ TẢI DỮ LIỆU MỚI
+    // MODULE 4: ACTIVE SESSIONS & DEVICE FINGERPRINTING
+    async function loadActiveSessions() {
+        const tbody = document.getElementById('sessionsTableBody');
+        try {
+            const res = await fetch('/api/sessions/active', { headers: getAuthHeaders() });
+            const data = await res.json();
+
+            if (!res.ok) {
+                displayAlert('sessionsAlert', false, `HTTP ${res.status}: ${parseError(data.detail)}`);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger"><i class="fa-solid fa-lock me-2"></i>Yêu cầu đăng nhập để xem các phiên hoạt động.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.active_sessions.length ? '' : '<tr><td colspan="6" class="text-center text-muted">Chưa có phiên làm việc nào đang hoạt động.</td></tr>';
+            data.active_sessions.forEach(s => {
+                const badgeCurrent = s.is_current ? '<span class="badge bg-success ms-1">Thiết bị này</span>' : '';
+                tbody.innerHTML += `<tr>
+                    <td><strong>${s.email}</strong></td>
+                    <td><i class="fa-solid fa-desktop me-1 text-secondary"></i>${s.device}</td>
+                    <td><code>${s.ip}</code> <br><small class="text-muted">${s.location}</small></td>
+                    <td><small>${s.created_at}</small></td>
+                    <td><small>${s.last_active}</small> ${badgeCurrent}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="revokeSession('${s.sid}')">
+                            <i class="fa-solid fa-power-off me-1"></i>Đăng xuất từ xa
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        } catch(e) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Không thể kết nối máy chủ!</td></tr>`;
+        }
+    }
+
+    async function revokeSession(sid) {
+        try {
+            const res = await fetch(`/api/sessions/revoke/${sid}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            const data = await res.json();
+            displayAlert('sessionsAlert', res.ok, res.ok ? data.message : parseError(data.detail));
+            if (res.ok) refreshAllModuleData();
+        } catch(e) {
+            displayAlert('sessionsAlert', false, "Lỗi khi thu hồi phiên!");
+        }
+    }
+
+    // MODULE 4: AUDIT LOGS
+    async function loadAuditLogs() {
+        const tbody = document.getElementById('auditLogsTableBody');
+        try {
+            const res = await fetch('/api/audit/logs', { headers: getAuthHeaders() });
+            const data = await res.json();
+
+            if (!res.ok) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center p-4 bg-light text-danger">
+                            <i class="fa-solid fa-shield-halved fa-3x mb-3 text-secondary"></i>
+                            <h5 class="fw-bold">🔒 GIỚI HẠN PHÂN QUYỀN KIỂM TOÁN (HTTP ${res.status})</h5>
+                            <p class="mb-0 text-secondary">${parseError(data.detail)}</p>
+                            <small class="text-muted d-block mt-2">Dashboard Nhật ký Kiểm toán Audit Logs chỉ dành riêng cho Auditor và Admin.</small>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.audit_logs.length ? '' : '<tr><td colspan="6" class="text-center text-muted">Chưa có nhật ký hoạt động nào được ghi nhận.</td></tr>';
+            data.audit_logs.forEach(log => {
+                let statusBadge = '<span class="badge bg-success">Thành công</span>';
+                if (log.status === 'FAILED') statusBadge = '<span class="badge bg-warning text-dark">Thất bại</span>';
+                else if (log.status === 'BLOCKED' || log.status === 'LOCKED') statusBadge = '<span class="badge bg-danger">Bị chặn</span>';
+                else if (log.status === 'ALERT') statusBadge = '<span class="badge bg-danger animate__animated animate__flash">TẤN CÔNG</span>';
+
+                tbody.innerHTML += `<tr>
+                    <td><small>${log.timestamp}</small></td>
+                    <td><strong>${log.email}</strong></td>
+                    <td><code class="text-primary">${log.action}</code></td>
+                    <td><code>${log.ip}</code><br><small class="text-muted">${log.device}</small></td>
+                    <td>${statusBadge}</td>
+                    <td class="small">${log.details}</td>
+                </tr>`;
+            });
+        } catch(e) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Không thể tải danh sách Audit Log!</td></tr>`;
+        }
+    }
+
+    // MODULE 4: PENTEST REPORT
+    async function loadPentestReport() {
+        const container = document.getElementById('pentestReportContainer');
+        try {
+            const res = await fetch('/api/audit/pentest-report');
+            const data = await res.json();
+
+            let htmlContent = `
+                <div class="alert alert-indigo border d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-1"><i class="fa-solid fa-shield-cat me-2"></i>${data.title}</h6>
+                        <small>Ngày đánh giá: ${data.audit_date} | Mục tiêu: ${data.target_system}</small>
+                    </div>
+                    <div>
+                        ${data.tools_used.map(t => `<span class="badge bg-dark me-1">${t}</span>`).join('')}
+                    </div>
+                </div>
+                <div class="row g-3">
+            `;
+
+            data.findings.forEach(item => {
+                let badgeSev = "bg-danger";
+                if (item.severity === "HIGH") badgeSev = "bg-warning text-dark";
+                else if (item.severity === "MEDIUM") badgeSev = "bg-info text-dark";
+
+                let badgeStatus = item.status === "MITIGATED" || item.status === "PASSED" ? "bg-success" : "bg-secondary";
+
+                htmlContent += `
+                    <div class="col-md-6">
+                        <div class="card h-100 border">
+                            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                                <span class="fw-bold"><i class="fa-solid fa-bug text-danger me-1"></i>${item.id}: ${item.attack_type}</span>
+                                <div>
+                                    <span class="badge ${badgeSev}">${item.severity}</span>
+                                    <span class="badge ${badgeStatus} ms-1">${item.status}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="small mb-1"><strong>Công cụ:</strong> <code>${item.tool}</code></p>
+                                <p class="small mb-2"><strong>Target Endpoint:</strong> <code>${item.target}</code></p>
+                                <div class="p-2 bg-light border rounded small mb-2">
+                                    <strong>Minh chứng Tấn công (Proof):</strong><br>
+                                    <span class="text-secondary">${item.evidence}</span>
+                                </div>
+                                <div class="p-2 bg-success-subtle text-success-emphasis border border-success-subtle rounded small">
+                                    <strong>Giải pháp khắc phục (Mitigation):</strong><br>
+                                    <span>${item.mitigation}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            htmlContent += `</div>`;
+            container.innerHTML = htmlContent;
+        } catch(e) {
+            container.innerHTML = `<div class="alert alert-danger">Không thể tải báo cáo Pentest!</div>`;
+        }
+    }
+
+    // TẮC TỰ ĐỘNG TẢI DỮ LIỆU KHI CHUYỂN TAB
     document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(tabBtn => {
         tabBtn.addEventListener('shown.bs.tab', (e) => {
             const target = e.target.getAttribute('data-bs-target');
-            if (target === '#tab-rate-limit') {
-                loadIpBlacklist();
-            } else if (target === '#tab-security-alerts') {
-                loadSecurityAlerts();
-            }
+            if (target === '#tab-rate-limit') loadIpBlacklist();
+            else if (target === '#tab-security-alerts') loadSecurityAlerts();
+            else if (target === '#tab-active-sessions') loadActiveSessions();
+            else if (target === '#tab-audit-logs') loadAuditLogs();
+            else if (target === '#tab-pentest') loadPentestReport();
         });
     });
 
     document.getElementById('btnRefreshAlerts').addEventListener('click', loadSecurityAlerts);
+    document.getElementById('btnRefreshSessions').addEventListener('click', loadActiveSessions);
+    document.getElementById('btnRefreshAuditLogs').addEventListener('click', loadAuditLogs);
+    document.getElementById('btnLoadPentest').addEventListener('click', loadPentestReport);
 
-    window.addEventListener('load', () => { refreshSecurityData(); });
+    window.addEventListener('load', () => { refreshAllModuleData(); loadPentestReport(); });
 </script>
 </body>
 </html>
